@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Facebook Page</title>
+    <style>
+        #pagesList { margin-top: 20px; }
+        .pageItem { cursor: pointer; padding: 10px; border: 1px solid #ccc; margin-bottom: 10px; }
+        .pageItem:hover { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <button id="loginBtn">Login with Facebook</button>
+    <div id="pagesList" style="display:none;"></div>
+
+    <script>
+        // Initialize Facebook SDK
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId      : '1042754934010367', // Replace with your app ID
+                cookie     : true,
+                xfbml      : true,
+                version    : 'v15.0'
+            });
+
+            FB.AppEvents.logPageView();   
+        };
+
+        (function(d, s, id){
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) {return;}
+            js = d.createElement(s); js.id = id;
+            js.src = "https://connect.facebook.net/en_US/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+
+        // Login with Facebook
+        document.getElementById('loginBtn').onclick = function() {
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    fetchPages();
+                } else {
+                    console.log('User cancelled login or failed.');
+                }
+            }, {scope: 'pages_manage_posts,pages_read_engagement, pages_manage_metadata, pages_messaging_subscriptions, pages_messaging'});
+        };
+
+        // Fetch and display pages
+        function fetchPages() {
+            FB.api('/me/accounts', function(response) {
+                if (response && !response.error) {
+                    const pagesListDiv = document.getElementById('pagesList');
+                    pagesListDiv.innerHTML = '';
+                    response.data.forEach(page => {
+                        const pageDiv = document.createElement('div');
+                        pageDiv.className = 'pageItem';
+                        pageDiv.innerHTML = `Page Name: ${page.name}`;
+                        pageDiv.onclick = function() {
+                            sendToken(page.access_token);
+                        };
+                        pagesListDiv.appendChild(pageDiv);
+                    });
+                    pagesListDiv.style.display = 'block';
+                } else {
+                    console.error(response.error);
+                }
+            });
+        }
+
+        // Send the access token via POST to /hello and redirect
+        function sendToken(token) {
+            fetch('/hello', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ access_token: token }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.location.href = '/hello';
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
